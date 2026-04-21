@@ -1,7 +1,7 @@
 # Coach Project — Claude Instructions
 
-This is a personal coaching project. It has two responsibilities:
-1. **Workout logging** — write, read, and manage gym sessions stored as JSON in `workouts/data/`
+This project has two responsibilities:
+1. **Workout logging** — save gym sessions as JSON files directly to GitHub via the GitHub MCP tool
 2. **Coaching** — training, nutrition, and body composition advice (see SKILL.md)
 
 ---
@@ -12,17 +12,17 @@ This is a personal coaching project. It has two responsibilities:
 
 | User says | Action |
 |---|---|
-| `log` / `logged` / `gym today` / `today's session` | Save today's session → commit → push |
+| `log` / `logged` / `gym today` / `today's session` | Save session to GitHub via API |
 | `show [today / yesterday / date / this week]` | Read and display session(s) |
 | `history` | List all sessions newest-first |
 | `prs` / `personal records` | Best weight per exercise across all files |
 | `weekly summary` / `this week` | Volume, sets, muscles hit for current week |
-| `edit [date]` | Read → let user change values → rewrite → commit → push |
-| `delete [date]` | Delete file → commit → push |
+| `edit [date]` | Read file → apply user changes → rewrite to GitHub |
+| `delete [date]` | Delete file via GitHub API |
 
 ---
 
-### How to log a session
+### How to save a session
 
 **Step 1 — Parse input** (accept any natural format):
 - `hip thrust 3x12 @ 60kg`
@@ -30,11 +30,9 @@ This is a personal coaching project. It has two responsibilities:
 - `lateral raise 4 sets 10 reps 8kg`
 - `leg press 80kg x 15 x 4`
 
-If no unit given → assume **kg**. If user says **lb** → convert to kg (÷ 2.2046), store kg rounded to 1 decimal.
+If no unit → assume **kg**. If user says **lb** → convert to kg (÷ 2.2046), store kg rounded to 1 decimal.
 
-**Step 2 — Write file**
-
-Path: `workouts/data/YYYY-MM-DD.json`
+**Step 2 — Build the JSON**
 
 ```json
 {
@@ -56,17 +54,22 @@ Rules:
 - Proper capitalization: `Hip Thrust`, `Romanian Deadlift`, `Leg Press`
 - One weight for all sets → repeat it per set
 - Different weights per set → map in order
-- File already exists → **merge** new exercises in, don't overwrite
 - Free-text remarks → put in `"notes"`
+- If a file already exists for that date → read it first, merge new exercises in, then rewrite
 
-**Step 3 — Commit and push**
-```
-git add workouts/data/YYYY-MM-DD.json
-git commit -m "gym: YYYY-MM-DD — Exercise1, Exercise2, Exercise3"
-git push
-```
+**Step 3 — Write to GitHub using the GitHub MCP tool**
 
-**Step 4 — Reply with summary**
+Use `create_or_update_file` with:
+- **owner**: `thaizbar-debug`
+- **repo**: `coach`
+- **path**: `workouts/data/YYYY-MM-DD.json`
+- **content**: the JSON (the tool handles encoding)
+- **message**: `gym: YYYY-MM-DD — Exercise1, Exercise2, Exercise3`
+- **branch**: `main`
+- **sha**: only required if the file already exists — read it first to get the sha
+
+**Step 4 — Reply with a clean summary**
+
 ```
 Saved — Mon Apr 21 2026
 
@@ -79,9 +82,16 @@ Saved — Mon Apr 21 2026
 
 ---
 
-### Displaying sessions
+### Reading sessions
 
-Always show: date (weekday + full date), each exercise with sets/reps/weight, total sets, total volume (weight × reps summed).
+Use the GitHub MCP `get_file_contents` tool to read `workouts/data/YYYY-MM-DD.json`.
+
+For history or PRs, list files in `workouts/data/` first, then read each one.
+
+Display format:
+- Date as weekday + full date
+- Each exercise: name, sets × reps @ weight
+- Total sets and total volume (sum of weight × reps)
 
 ### History
 
@@ -92,7 +102,7 @@ Fri Apr 18   Hip Thrust · RDL · Cable Kickback   [6 exercises · 24 sets · 3,
 
 ### Personal Records
 
-Scan all files in `workouts/data/`. Best weight per exercise (highest single-set weight). Display:
+Read all files. Best weight per exercise (highest single-set weight):
 ```
 Personal Records (all-time)
 
@@ -103,14 +113,13 @@ Personal Records (all-time)
 
 ### Weekly summary
 
-Current Mon–Sun. Show: days trained, total volume, total sets, muscles hit, best lift per exercise this week.
+Group Mon–Sun of current week. Show: days trained, total volume, total sets, muscles hit, best lift per exercise.
 
 ---
 
 ### Rules
 
 - **Never ask for confirmation before saving** — save, then show summary.
-- **Always push** after every write. If push fails, say so explicitly.
-- If weight is missing, ask once only for that.
-- Display in kg. Show lb equivalent only if user asks.
+- If weight is missing for an exercise, ask once only for that.
+- Display in kg. Show lb only if user asks.
 - User has **chondromalacia patella** (both knees) — if they log deep squats, full leg extensions, or jump squats, add a brief knee-safety note after saving.

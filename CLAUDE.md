@@ -1,28 +1,34 @@
 # Coach Project — Claude Instructions
 
 This project has two responsibilities:
-1. **Workout logging** — save gym sessions as JSON files directly to GitHub via the GitHub MCP tool
+1. **Workout logging** — save gym sessions to a Google Sheet via curl
 2. **Coaching** — training, nutrition, and body composition advice (see SKILL.md)
 
 ---
 
-## Workout Logging
+## Workout Database
 
-### Commands to recognize
+**Storage:** Google Sheet "Workout Log" via Apps Script endpoint
+**SHEETS_URL:** *(paste your deployment URL here after setup)*
+**SECRET:** `thaiz-gym-2026`
 
-| User says | Action |
-|---|---|
-| `log` / `logged` / `gym today` / `today's session` | Save session to GitHub via API |
-| `show [today / yesterday / date / this week]` | Read and display session(s) |
-| `history` | List all sessions newest-first |
-| `prs` / `personal records` | Best weight per exercise across all files |
-| `weekly summary` / `this week` | Volume, sets, muscles hit for current week |
-| `edit [date]` | Read file → apply user changes → rewrite to GitHub |
-| `delete [date]` | Delete file via GitHub API |
+Columns: Date | Workout | Exercise | Set | Weight (kg) | Reps | Side | Notes
 
 ---
 
-### How to save a session
+## Commands to recognize
+
+| User says | Action |
+|---|---|
+| `log` / `logged` / `gym today` / `today's session` | Parse → POST rows to sheet |
+| `show [today / yesterday / date]` | GET from sheet, display clean |
+| `history` | GET all rows, group by date, list |
+| `prs` / `personal records` | GET all rows, find max weight per exercise |
+| `weekly summary` / `this week` | GET rows for current Mon–Sun |
+
+---
+
+## How to log a session
 
 **Step 1 — Parse input** (accept any natural format):
 - `hip thrust 3x12 @ 60kg`
@@ -30,96 +36,89 @@ This project has two responsibilities:
 - `lateral raise 4 sets 10 reps 8kg`
 - `leg press 80kg x 15 x 4`
 
-If no unit → assume **kg**. If user says **lb** → convert to kg (÷ 2.2046), store kg rounded to 1 decimal.
+No unit → assume **kg**. User says **lb** → divide by 2.2046, round to 1 decimal, store kg.
 
-**Step 2 — Build the JSON**
+**Step 2 — Build the payload**
 
+Each set = one row object:
 ```json
 {
-  "date": "YYYY-MM-DD",
-  "exercises": [
-    {
-      "name": "Exercise Name",
-      "sets": [
-        { "set": 1, "weight_kg": 0, "reps": 0 },
-        { "set": 2, "weight_kg": 0, "reps": 0 }
-      ]
-    }
-  ],
-  "notes": ""
+  "secret": "thaiz-gym-2026",
+  "rows": [
+    { "date": "YYYY-MM-DD", "workout": "Session Name", "exercise": "Hip Thrust", "set": 1, "weight_kg": 60, "reps": 12, "side": "", "notes": "" },
+    { "date": "YYYY-MM-DD", "workout": "Session Name", "exercise": "Hip Thrust", "set": 2, "weight_kg": 60, "reps": 12, "side": "", "notes": "" }
+  ]
 }
 ```
 
-Rules:
-- Proper capitalization: `Hip Thrust`, `Romanian Deadlift`, `Leg Press`
-- One weight for all sets → repeat it per set
-- Different weights per set → map in order
-- Free-text remarks → put in `"notes"`
-- If a file already exists for that date → read it first, merge new exercises in, then rewrite
+**Step 3 — POST via bash**
 
-**Step 3 — Write to GitHub using the GitHub MCP tool**
+```bash
+curl -s -X POST "SHEETS_URL" \
+  -H "Content-Type: application/json" \
+  -d '{ JSON_PAYLOAD }'
+```
 
-Use `create_or_update_file` with:
-- **owner**: `thaizbar-debug`
-- **repo**: `coach`
-- **path**: `workouts/data/YYYY-MM-DD.json`
-- **content**: the JSON (the tool handles encoding)
-- **message**: `gym: YYYY-MM-DD — Exercise1, Exercise2, Exercise3`
-- **branch**: `main`
-- **sha**: only required if the file already exists — read it first to get the sha
+Check the response for `{"status":"ok"}`. If error, show it to the user.
 
-**Step 4 — Reply with a clean summary**
+**Step 4 — Confirm with clean summary**
 
 ```
-Saved — Mon Apr 21 2026
+Saved — Mon Apr 21 2026  |  Upper Body
 
-  Hip Thrust         3 × 12  @ 60 kg
-  Romanian DL        3 × 10  @ 50 kg
-  Cable Kickback     3 × 15  @ 15 kg
+  Incline DB Press     4 sets  |  9.1→11.3 kg  |  10–12 reps
+  Lat Pulldown         4 × 8   |  31.8 kg
+  DB Shoulder Press    3 sets  |  6.8→9.1 kg   |  10–12 reps
+  ...
 
-  Total volume: 4,050 kg  ·  9 sets
+  Total: 27 sets  ·  Volume: 2,840 kg
 ```
 
 ---
 
-### Reading sessions
+## How to read sessions
 
-Use the GitHub MCP `get_file_contents` tool to read `workouts/data/YYYY-MM-DD.json`.
-
-For history or PRs, list files in `workouts/data/` first, then read each one.
-
-Display format:
-- Date as weekday + full date
-- Each exercise: name, sets × reps @ weight
-- Total sets and total volume (sum of weight × reps)
-
-### History
-
-Newest-first. Each line:
-```
-Fri Apr 18   Hip Thrust · RDL · Cable Kickback   [6 exercises · 24 sets · 3,200 kg]
+**GET single date:**
+```bash
+curl -s "SHEETS_URL?secret=thaiz-gym-2026&date=YYYY-MM-DD"
 ```
 
-### Personal Records
-
-Read all files. Best weight per exercise (highest single-set weight):
-```
-Personal Records (all-time)
-
-  Hip Thrust           80 kg × 8
-  Romanian Deadlift    60 kg × 10
-  Leg Press           120 kg × 12
+**GET all rows:**
+```bash
+curl -s "SHEETS_URL?secret=thaiz-gym-2026"
 ```
 
-### Weekly summary
-
-Group Mon–Sun of current week. Show: days trained, total volume, total sets, muscles hit, best lift per exercise.
+Parse the JSON response and format cleanly.
 
 ---
 
-### Rules
+## Display formats
 
-- **Never ask for confirmation before saving** — save, then show summary.
-- If weight is missing for an exercise, ask once only for that.
-- Display in kg. Show lb only if user asks.
-- User has **chondromalacia patella** (both knees) — if they log deep squats, full leg extensions, or jump squats, add a brief knee-safety note after saving.
+**Single session:** group rows by exercise, show sets/reps/weight, total sets, total volume.
+
+**History:** one line per date — `Mon Apr 21 | Upper Body | 9 exercises · 27 sets · 2,840 kg`
+
+**PRs:** highest weight_kg per exercise across all rows:
+```
+Personal Records
+  Lat Pulldown      31.8 kg × 8
+  Romanian DL       27 kg × 12
+```
+
+**Weekly summary:** total sessions, total volume, total sets, muscles hit, best lift per exercise.
+
+---
+
+## Rules
+
+- Never ask for confirmation before saving — save then confirm.
+- If weight is missing, ask once only.
+- Display in kg. Show lb only if asked.
+- User has **chondromalacia patella** (both knees) — if they log deep squats, full leg extensions, or jump squats, add a brief knee-safety note.
+- If curl returns an error or non-200, show the raw response and stop.
+
+---
+
+## Setup status
+
+Google Sheet URL: *not yet configured — see setup instructions in workouts/SETUP.md*

@@ -1,46 +1,29 @@
 # Coach Project — Claude Instructions
 
 This project has two responsibilities:
-1. **Workout logging** — save gym sessions as JSON files to GitHub via the API
+1. **Workout logging** — save gym sessions as JSON files to GitHub using bash_tool + GitHub API
 2. **Coaching** — training, nutrition, and body composition advice (see SKILL.md)
 
 ---
 
-## Workout Database
+## Workout logging — exact execution steps
 
-**Storage:** GitHub repo `thaizbar-debug/coach`, files at `workouts/data/YYYY-MM-DD.json`
-**Auth:** Read the GitHub token from the Google Drive document named `coach-token` (first line, trimmed)
-**API base:** `https://api.github.com/repos/thaizbar-debug/coach`
+When the user logs a workout, execute these steps in order using the tools you have.
 
----
+### Step 1 — Read the GitHub token from Google Drive
 
-## Commands to recognize
+Use your Google Drive MCP tool to search for a document named `coach-token`. Read its full content and trim whitespace. This is the GitHub personal access token (starts with `ghp_`). Store it as TOKEN.
 
-| User says | Action |
-|---|---|
-| `log` / `logged` / `gym today` / `today's session` | Parse → write JSON to GitHub |
-| `show [today / yesterday / date]` | Read file from GitHub, display clean |
-| `history` | List all files in `workouts/data/`, show summary per date |
-| `prs` / `personal records` | Read all files, find best weight per exercise |
-| `weekly summary` / `this week` | Read files for current Mon–Sun |
+### Step 2 — Parse the workout input
 
----
-
-## How to log a session
-
-**Step 1 — Parse input** (accept any natural format):
+Accept any natural format:
 - `hip thrust 3x12 @ 60kg`
-- `rdl: 50kg, 3 sets of 10`
+- `rdl 50kg 3 sets of 10`
 - `lateral raise 4 sets 10 reps 8kg`
-- `leg press 80kg x 15 x 4`
 
-No unit → assume **kg**. User says **lb** → divide by 2.2046, round to 1 decimal, store kg.
+No unit → assume kg. User says lb → divide by 2.2046, round to 1 decimal.
 
-**Step 2 — Read the token from Google Drive**
-
-Search Google Drive for a document named `coach-token`. Read its content and trim whitespace. This is the GitHub token (`ghp_...`). Store it as `$TOKEN`.
-
-**Step 3 — Build the JSON**
+### Step 3 — Build the JSON string
 
 ```json
 {
@@ -50,7 +33,7 @@ Search Google Drive for a document named `coach-token`. Read its content and tri
     {
       "name": "Exercise Name",
       "sets": [
-        { "set": 1, "weight_kg": 0, "reps": 0, "side": "", "notes": "" }
+        { "set": 1, "weight_kg": 0, "reps": 0, "notes": "" }
       ]
     }
   ],
@@ -58,94 +41,85 @@ Search Google Drive for a document named `coach-token`. Read its content and tri
 }
 ```
 
-Rules:
-- Proper capitalization: `Hip Thrust`, `Romanian Deadlift`
-- One weight for all sets → repeat per set
-- Different weights per set → map in order
-- Free-text remarks → `notes` field
-- If file already exists for that date → fetch it first, merge new exercises in, rewrite
+### Step 4 — Check if a file already exists for this date
 
-**Step 4 — Write to GitHub via API**
-
-First check if file exists (to get its `sha` for updates):
+Use **bash_tool** to run:
 ```bash
-curl -s -H "Authorization: token $TOKEN" \
+curl -s \
+  -H "Authorization: token TOKEN" \
   "https://api.github.com/repos/thaizbar-debug/coach/contents/workouts/data/YYYY-MM-DD.json"
 ```
 
-Then create or update the file:
+- If the response contains `"sha"` → the file exists. Extract the `sha` value and the existing content (base64 decode it), then merge the new exercises in.
+- If the response contains `"Not Found"` → new file, no sha needed.
+
+### Step 5 — Write the file using bash_tool
+
+Base64-encode the JSON, then PUT it to the GitHub API:
+
 ```bash
+CONTENT=$(echo -n 'JSON_STRING' | base64 -w 0)
 curl -s -X PUT \
-  -H "Authorization: token $TOKEN" \
+  -H "Authorization: token TOKEN" \
   -H "Content-Type: application/json" \
   "https://api.github.com/repos/thaizbar-debug/coach/contents/workouts/data/YYYY-MM-DD.json" \
-  -d '{
-    "message": "gym: YYYY-MM-DD — Exercise1, Exercise2",
-    "content": "BASE64_OF_JSON",
-    "branch": "main",
-    "sha": "EXISTING_SHA_OR_OMIT_IF_NEW"
-  }'
+  -d "{\"message\":\"gym: YYYY-MM-DD\",\"content\":\"$CONTENT\",\"branch\":\"main\"}"
 ```
 
-`content` must be the JSON base64-encoded:
-```bash
-echo -n 'JSON_STRING' | base64 -w 0
-```
+If updating an existing file, add `"sha":"EXISTING_SHA"` to the JSON body.
 
-A response with `"commit"` in it means success. If error, show the `message` field.
+Success = response contains `"commit"`. If error, show the `message` field.
 
-**Step 5 — Confirm with clean summary**
+### Step 6 — Reply with a clean summary
 
 ```
 Saved — Mon Apr 21 2026  |  Upper Body
 
-  Incline DB Press     4 sets  |  9.1→11.3 kg  |  10–12 reps
+  Incline DB Press     4 sets  |  9.1–11.3 kg  |  10–12 reps
   Lat Pulldown         4 × 8   |  31.8 kg
-  DB Shoulder Press    3 sets  |  6.8→9.1 kg   |  10–12 reps
+  DB Shoulder Press    3 sets  |  6.8–9.1 kg   |  10–12 reps
 
   Total: 27 sets  ·  Volume: 2,840 kg
 ```
 
 ---
 
-## How to read sessions
+## Reading sessions
+
+Use **bash_tool**:
 
 ```bash
-curl -s -H "Authorization: token $TOKEN" \
+# Get one session
+curl -s -H "Authorization: token TOKEN" \
   "https://api.github.com/repos/thaizbar-debug/coach/contents/workouts/data/YYYY-MM-DD.json"
 ```
+Decode the `content` field (base64) to get the JSON. Display grouped by exercise.
 
-The response has a `content` field (base64). Decode it to get the JSON, then format cleanly.
-
-List all session files:
 ```bash
-curl -s -H "Authorization: token $TOKEN" \
+# List all sessions
+curl -s -H "Authorization: token TOKEN" \
   "https://api.github.com/repos/thaizbar-debug/coach/contents/workouts/data"
 ```
 
 ---
 
-## Display formats
+## Commands to recognize
 
-**Single session:** group by exercise, show sets/reps/weight, total sets, total volume.
-
-**History:** one line per date — `Mon Apr 21 | Upper Body | 9 exercises · 27 sets · 2,840 kg`
-
-**PRs:** highest weight_kg per exercise across all files:
-```
-Personal Records
-  Lat Pulldown      31.8 kg × 8
-  Romanian DL       27 kg × 12
-```
-
-**Weekly summary:** total sessions, total volume, total sets, muscles hit, best lift per exercise.
+| User says | What to do |
+|---|---|
+| `log` / `logged` / `gym today` | Steps 1–6 above |
+| `show today` / `show yesterday` / `show [date]` | Read file, display clean |
+| `history` | List all files, show one line per date |
+| `prs` / `personal records` | Read all files, find max weight per exercise |
+| `this week` / `weekly summary` | Read files for Mon–Sun of current week |
 
 ---
 
-## Rules
+## Important notes
 
-- Never ask for confirmation before saving — save then confirm.
+- **Use bash_tool for all API calls** — not a GitHub MCP connector (there isn't one). The bash_tool network allowlist includes `api.github.com`.
+- **Read the token via Google Drive MCP** — do not ask the user for it.
+- Never ask for confirmation before saving — save then show the summary.
 - If weight is missing, ask once only.
 - Display in kg. Show lb only if asked.
 - User has **chondromalacia patella** (both knees) — if they log deep squats, full leg extensions, or jump squats, add a brief knee-safety note.
-- If the API returns an error, show the `message` field and stop.

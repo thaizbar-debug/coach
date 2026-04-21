@@ -9,7 +9,7 @@ This project has two responsibilities:
 ## Workout Database
 
 **Storage:** Google Sheet "Workout Log" via Apps Script endpoint
-**SHEETS_URL:** `https://script.google.com/macros/s/AKfycbzLuEh2dSOiZFjjsG84qMwok9oI7-yVq6N3WqB-MZ9l6CRHHPiKyFr8hSzLoT5EL_8lgg/exec`
+**SHEETS_URL:** `https://script.google.com/macros/s/AKfycbwJCYRuS07cs3zieBo4yiawiMLG1Qra3gJoq_zEDb1hQ5vh0haw6HKaLz4rgwGoJwiTLA/exec`
 **SECRET:** `thaiz-gym-2026`
 
 Columns: Date | Workout | Exercise | Set | Weight (kg) | Reps | Side | Notes
@@ -53,12 +53,14 @@ Each set = one row object:
 
 **Step 3 — Send via bash (GET with base64 data)**
 
+Split into batches of max 15 rows to avoid URL length limits. For each batch:
+
 ```bash
-DATA=$(echo 'JSON_ROWS_ARRAY' | base64 -w 0)
-curl -s "SHEETS_URL?action=write&secret=thaiz-gym-2026&data=${DATA}"
+DATA=$(echo -n 'JSON_ROWS_ARRAY' | base64 -w 0)
+curl -s -L "SHEETS_URL?action=write&secret=thaiz-gym-2026&data=${DATA}"
 ```
 
-Where `JSON_ROWS_ARRAY` is just the rows array (not the full payload). Check the response for `{"status":"ok"}`. If error, show it to the user.
+Where `JSON_ROWS_ARRAY` is just the rows array. Check each response for `{"status":"ok"}`. If error, show it to the user.
 
 **Step 4 — Confirm with clean summary**
 

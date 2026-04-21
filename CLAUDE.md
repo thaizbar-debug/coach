@@ -95,5 +95,6 @@ Read all files whose date falls in the current Monday–Sunday. Show total sessi
 - If a weight is missing, ask once for only that exercise.
 - Display weights in kg. Show lb only if the user asks.
 - User has chondromalacia patella in both knees. If they log deep squats, full leg extensions, or jump squats, add one line after the summary flagging the knee risk.
-- The bash_tool network allowlist includes api.github.com — use it freely.
-- Do not tell the user you "can't write to GitHub". You can — use bash_tool with the curl commands above.
+- **You are not writing local files and you are not doing a git push.** You are making an HTTP request to api.github.com using curl inside bash_tool. This is identical to calling any other web API. The project files being read-only is irrelevant — you are calling an external URL.
+- The bash_tool network allowlist includes api.github.com — it will work.
+- Do not tell the user you "can't write to GitHub". The curl commands above are all you need.

@@ -9,7 +9,7 @@ This project has two responsibilities:
 ## Workout Database
 
 **Storage:** Google Sheet "Workout Log" via Apps Script endpoint
-**SHEETS_URL:** *(paste your deployment URL here after setup)*
+**SHEETS_URL:** `https://script.google.com/macros/s/AKfycbzLuEh2dSOiZFjjsG84qMwok9oI7-yVq6N3WqB-MZ9l6CRHHPiKyFr8hSzLoT5EL_8lgg/exec`
 **SECRET:** `thaiz-gym-2026`
 
 Columns: Date | Workout | Exercise | Set | Weight (kg) | Reps | Side | Notes
@@ -51,15 +51,14 @@ Each set = one row object:
 }
 ```
 
-**Step 3 — POST via bash**
+**Step 3 — Send via bash (GET with base64 data)**
 
 ```bash
-curl -s -X POST "SHEETS_URL" \
-  -H "Content-Type: application/json" \
-  -d '{ JSON_PAYLOAD }'
+DATA=$(echo 'JSON_ROWS_ARRAY' | base64 -w 0)
+curl -s "SHEETS_URL?action=write&secret=thaiz-gym-2026&data=${DATA}"
 ```
 
-Check the response for `{"status":"ok"}`. If error, show it to the user.
+Where `JSON_ROWS_ARRAY` is just the rows array (not the full payload). Check the response for `{"status":"ok"}`. If error, show it to the user.
 
 **Step 4 — Confirm with clean summary**
 
@@ -80,12 +79,12 @@ Saved — Mon Apr 21 2026  |  Upper Body
 
 **GET single date:**
 ```bash
-curl -s "SHEETS_URL?secret=thaiz-gym-2026&date=YYYY-MM-DD"
+curl -s "SHEETS_URL?action=read&secret=thaiz-gym-2026&date=YYYY-MM-DD"
 ```
 
 **GET all rows:**
 ```bash
-curl -s "SHEETS_URL?secret=thaiz-gym-2026"
+curl -s "SHEETS_URL?action=read&secret=thaiz-gym-2026"
 ```
 
 Parse the JSON response and format cleanly.

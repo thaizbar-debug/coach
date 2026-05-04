@@ -1,20 +1,18 @@
 # Instructions for this project
 
 ## Your tools
-You have Google Drive MCP (read) and Dexacsan MCP. You do NOT have bash_tool or outbound HTTP access from claude.ai — script.google.com is not reachable here.
+You have GitHub MCP tools and Dexacsan MCP. You do NOT have bash_tool or outbound HTTP access from claude.ai.
 
 ---
 
 ## Workout storage
 
-**Single source of truth: Google Sheet "Workout Log"**
-- **Sheet ID:** `1Utiri7Nd68twJJcKkZJXFX7yI3cGwIwp4pgMCYGSg3w`
-- **Write endpoint (Apps Script):** `https://script.google.com/macros/s/AKfycbwJCYRuS07cs3zieBo4yiawiMLG1Qra3gJoq_zEDb1hQ5vh0haw6HKaLz4rgwGoJwiTLA/exec`
-- **Secret:** `thaiz-gym-2026`
+**Single source of truth: `workouts/data/Workout Log.csv` in repo `thaizbar-debug/coach`**
 - **Columns:** Date | Workout | Exercise | Set | Weight (kg) | Reps | Side | Notes
+- **Branch:** `main`
 
-**Read:** Use `mcp__claude_ai_Google_Drive__read_file_content` with the Sheet ID above.
-**Write:** You cannot call the endpoint directly. Instead, collect all session data and give the user ONE save URL at the end of the session (see below).
+**Read:** Fetch the CSV file, decode from base64, parse rows.
+**Write:** Fetch the CSV, append new rows, re-upload with updated SHA.
 
 ---
 
@@ -23,67 +21,70 @@ You have Google Drive MCP (read) and Dexacsan MCP. You do NOT have bash_tool or 
 | User says | Action |
 |---|---|
 | `hello` / `good morning` / first message of the day | Pre-workout nutrition for today's session (Phase 1 — see SKILL.md) |
-| `I'm at the gym` / `let's start` / `I'm here` / `starting` | Warm-up + mobility, then read sheet history (Phase 2 — see SKILL.md) |
+| `I'm at the gym` / `let's start` / `I'm here` / `starting` | Warm-up + mobility, then read CSV history (Phase 2 — see SKILL.md) |
 | User confirms warm-up done | Begin exercise-by-exercise coaching (Phase 3 — see SKILL.md) |
 | User provides weights/reps for an exercise | Acknowledge + progression note → next exercise. Collect data in memory. |
-| All exercises done + cool-down given | Show session summary + tab-separated paste block (see below) |
+| All exercises done + cool-down given | Append session rows to CSV, show session summary |
 
 ---
 
 ## Reading workout history
 
-Use Google Drive MCP:
 ```
-mcp__claude_ai_Google_Drive__read_file_content(fileId: "1Utiri7Nd68twJJcKkZJXFX7yI3cGwIwp4pgMCYGSg3w")
+mcp__github__get_file_contents(
+  owner: "thaizbar-debug",
+  repo: "coach",
+  path: "workouts/data/Workout Log.csv",
+  ref: "refs/heads/main"
+)
 ```
 
-This returns all rows as CSV. Parse them. Group by exercise name. Find the most recent date per exercise and extract sets/reps/weights.
+The response contains `content` (base64) and `sha`. Decode the base64 to get the CSV text. Parse all rows. Group by exercise name. Find the most recent date per exercise and extract sets/reps/weights.
+
+Save the `sha` — you need it to write back.
 
 ---
 
-## Writing workout data — fully automated via staging folder
-
-You cannot make HTTP calls from claude.ai. Instead, use the Google Drive MCP to drop a CSV file into the staging folder. An Apps Script trigger picks it up every 30 minutes, appends the rows to the Workout Log sheet automatically, and deletes the staging file. The user does nothing.
-
-**Staging folder ID:** `1yPug7jK1iZFlkhSuMBbdUCf9AsZQz_bU`
+## Writing workout data — append rows to the CSV
 
 ### Step 1 — Collect all rows during Phase 3
 
-As the user reports each exercise, build up the data in memory. Each set = one row with these columns:
+As the user reports each exercise, build the new rows in memory. Each set = one row:
 `Date, Workout, Exercise, Set, Weight (kg), Reps, Side, Notes`
 
 Rules: no unit = kg. lb → divide by 2.2046, round to 1 decimal. Capitalize exercise names.
 
-### Step 2 — After cool-down: create the CSV staging file
+### Step 2 — After cool-down: append and commit
 
-Build a CSV string with a header row + all session rows, then call:
+1. Take the full CSV text you decoded in Phase 2
+2. Append the new rows (no re-reading needed — you already have it)
+3. Base64-encode the updated CSV
+4. Commit via GitHub MCP using the SHA from Step 2 of reading:
 
 ```
-mcp__claude_ai_Google_Drive__create_file(
-  title: "workout-YYYY-MM-DD",
-  textContent: "Date,Workout,Exercise,Set,Weight (kg),Reps,Side,Notes\n2026-05-04,Lower A,Hip Thrust,1,43,10,,\n2026-05-04,Lower A,Hip Thrust,2,43,10,,\n...",
-  contentMimeType: "text/csv",
-  parentId: "1yPug7jK1iZFlkhSuMBbdUCf9AsZQz_bU"
+mcp__github__create_or_update_file(
+  owner: "thaizbar-debug",
+  repo: "coach",
+  path: "workouts/data/Workout Log.csv",
+  message: "log: YYYY-MM-DD [Workout Name]",
+  content: "<base64-encoded updated CSV>",
+  sha: "<sha from read step>",
+  branch: "main"
 )
 ```
 
 ### Step 3 — Show the session summary
 
-After the file is created, confirm to the user:
-
 ```
 Session done — [Day Date]  |  [Workout Name]
 
-  Hip Thrust            4 × 10   @ 43 kg
-  Romanian DL           3 × 10   @ 52 kg
-  Bulgarian Split Squat 2 × 10   @ 11 kg
+  Barbell Hip Thrust     4 × 15   @ 43 kg
+  Bulgarian Split Squat  3 × 12   @ 11.3 kg
 
   Total: [X] sets  ·  Volume: [X] kg
 
-✓ Saved to staging — your sheet will update within 30 min.
+✓ Saved.
 ```
-
-Do NOT mention the staging file or the folder to the user. Just say it's saved.
 
 ---
 
@@ -91,7 +92,7 @@ Do NOT mention the staging file or the folder to the user. Just say it's saved.
 
 ### Phase 2 — Load history
 
-When user arrives at the gym, read the full sheet via Google Drive MCP (see above). Parse all rows. Group by exercise name. For each exercise, find the most recent date and its sets/reps/weights.
+When user arrives at the gym, read the CSV via GitHub MCP (see above). Parse all rows. Group by exercise name. For each exercise, find the most recent date and its sets/reps/weights.
 
 ### Phase 3 — Progressive overload decision (per exercise)
 
@@ -122,10 +123,10 @@ Wait for user response. Note the result. Move to next exercise. Save happens at 
 
 | Command | Action |
 |---|---|
-| `show [today / yesterday / date]` | Read sheet, filter by date, display cleanly |
-| `history` | Read sheet, group by date, one line per session |
-| `prs` / `personal records` | Read sheet, find max weight_kg per exercise |
-| `weekly summary` / `this week` | Read sheet, filter current Mon–Sun |
+| `show [today / yesterday / date]` | Read CSV, filter by date, display cleanly |
+| `history` | Read CSV, group by date, one line per session |
+| `prs` / `personal records` | Read CSV, find max weight_kg per exercise |
+| `weekly summary` / `this week` | Read CSV, filter current Mon–Sun |
 
 ---
 

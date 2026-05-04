@@ -1,19 +1,18 @@
 # Instructions for this project
 
 ## Your tools
-You have Google Drive MCP (read) and Dexacsan MCP. You do NOT have bash_tool or outbound HTTP access from claude.ai — script.google.com is not reachable here.
+You have GitHub MCP tools and Dexacsan MCP. You do NOT have bash_tool or outbound HTTP access from claude.ai.
 
 ---
 
 ## Workout storage
 
-**Single source of truth: GitHub repo `workouts/data/`**
-- **Repo:** `thaizbar-debug/coach`
-- **File format:** one JSON file per session — `workouts/data/YYYY-MM-DD.json`
-- **Schema:** `{ date, workout, exercises: [{ name, sets: [{ set, weight_kg, reps, side?, notes? }] }], notes? }`
+**Single source of truth: `workouts/data/Workout Log.csv` in repo `thaizbar-debug/coach`**
+- **Columns:** Date | Workout | Exercise | Set | Weight (kg) | Reps | Side | Notes
+- **Branch:** `main`
 
-**Read:** Use `mcp__github__get_file_contents` to fetch individual files, or list the folder to find all sessions.
-**Write:** After cool-down, use `mcp__github__create_or_update_file` to commit the session JSON directly to the repo.
+**Read:** Fetch the CSV file, decode from base64, parse rows.
+**Write:** Fetch the CSV, append new rows, re-upload with updated SHA.
 
 ---
 
@@ -22,67 +21,65 @@ You have Google Drive MCP (read) and Dexacsan MCP. You do NOT have bash_tool or 
 | User says | Action |
 |---|---|
 | `hello` / `good morning` / first message of the day | Pre-workout nutrition for today's session (Phase 1 — see SKILL.md) |
-| `I'm at the gym` / `let's start` / `I'm here` / `starting` | Warm-up + mobility, then read GitHub history (Phase 2 — see SKILL.md) |
+| `I'm at the gym` / `let's start` / `I'm here` / `starting` | Warm-up + mobility, then read CSV history (Phase 2 — see SKILL.md) |
 | User confirms warm-up done | Begin exercise-by-exercise coaching (Phase 3 — see SKILL.md) |
 | User provides weights/reps for an exercise | Acknowledge + progression note → next exercise. Collect data in memory. |
-| All exercises done + cool-down given | Show session summary + save JSON to GitHub |
+| All exercises done + cool-down given | Append session rows to CSV, show session summary |
 
 ---
 
 ## Reading workout history
 
-Use `mcp__github__get_file_contents` to list and read files in `workouts/data/`:
-
 ```
-mcp__github__get_file_contents(owner: "thaizbar-debug", repo: "coach", path: "workouts/data")
+mcp__github__get_file_contents(
+  owner: "thaizbar-debug",
+  repo: "coach",
+  path: "workouts/data/Workout Log.csv",
+  ref: "refs/heads/main"
+)
 ```
 
-Then fetch each JSON file needed. Parse all sessions. Group by exercise name. Find the most recent date per exercise and extract sets/reps/weights.
+The response contains `content` (base64) and `sha`. Decode the base64 to get the CSV text. Parse all rows. Group by exercise name. Find the most recent date per exercise and extract sets/reps/weights.
+
+Save the `sha` — you need it to write back.
 
 ---
 
-## Writing workout data — commit JSON to GitHub
+## Writing workout data — append rows to the CSV
 
-After the cool-down, build the session JSON and commit it:
+### Step 1 — Collect all rows during Phase 3
+
+As the user reports each exercise, build the new rows in memory. Each set = one row:
+`Date, Workout, Exercise, Set, Weight (kg), Reps, Side, Notes`
+
+Rules: no unit = kg. lb → divide by 2.2046, round to 1 decimal. Capitalize exercise names.
+
+### Step 2 — After cool-down: append and commit
+
+1. Take the full CSV text you decoded in Phase 2
+2. Append the new rows (no re-reading needed — you already have it)
+3. Base64-encode the updated CSV
+4. Commit via GitHub MCP using the SHA from Step 2 of reading:
 
 ```
 mcp__github__create_or_update_file(
   owner: "thaizbar-debug",
   repo: "coach",
-  path: "workouts/data/YYYY-MM-DD.json",
+  path: "workouts/data/Workout Log.csv",
   message: "log: YYYY-MM-DD [Workout Name]",
-  content: "<base64-encoded JSON>",
+  content: "<base64-encoded updated CSV>",
+  sha: "<sha from read step>",
   branch: "main"
 )
 ```
 
-JSON format:
-```json
-{
-  "date": "YYYY-MM-DD",
-  "workout": "Lower A",
-  "exercises": [
-    {
-      "name": "Barbell Hip Thrust",
-      "sets": [
-        { "set": 1, "weight_kg": 43, "reps": 15 },
-        { "set": 2, "weight_kg": 43, "reps": 15 }
-      ]
-    }
-  ],
-  "notes": "Optional session notes."
-}
-```
-
-Rules: no unit = kg. lb → divide by 2.2046, round to 1 decimal. Capitalize exercise names.
-
-### After saving: show the session summary
+### Step 3 — Show the session summary
 
 ```
 Session done — [Day Date]  |  [Workout Name]
 
-  Hip Thrust            4 × 15   @ 43 kg
-  Bulgarian Split Squat 3 × 12   @ 11.3 kg
+  Barbell Hip Thrust     4 × 15   @ 43 kg
+  Bulgarian Split Squat  3 × 12   @ 11.3 kg
 
   Total: [X] sets  ·  Volume: [X] kg
 
@@ -95,7 +92,7 @@ Session done — [Day Date]  |  [Workout Name]
 
 ### Phase 2 — Load history
 
-When user arrives at the gym, read JSON files from `workouts/data/` via GitHub MCP (see above). Parse all sessions. Group by exercise name. For each exercise, find the most recent date and its sets/reps/weights.
+When user arrives at the gym, read the CSV via GitHub MCP (see above). Parse all rows. Group by exercise name. For each exercise, find the most recent date and its sets/reps/weights.
 
 ### Phase 3 — Progressive overload decision (per exercise)
 
@@ -126,10 +123,10 @@ Wait for user response. Note the result. Move to next exercise. Save happens at 
 
 | Command | Action |
 |---|---|
-| `show [today / yesterday / date]` | Read sheet, filter by date, display cleanly |
-| `history` | Read sheet, group by date, one line per session |
-| `prs` / `personal records` | Read sheet, find max weight_kg per exercise |
-| `weekly summary` / `this week` | Read sheet, filter current Mon–Sun |
+| `show [today / yesterday / date]` | Read CSV, filter by date, display cleanly |
+| `history` | Read CSV, group by date, one line per session |
+| `prs` / `personal records` | Read CSV, find max weight_kg per exercise |
+| `weekly summary` / `this week` | Read CSV, filter current Mon–Sun |
 
 ---
 

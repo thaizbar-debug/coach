@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Plan · April 2026</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 12.5px;
+    color: #1a1a1a;
+    background: #fff;
+    padding: 36px 40px;
+    max-width: 820px;
+    margin: 0 auto;
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #1a1a2e, #0f3460);
+    color: #fff;
+    padding: 22px 28px;
+    border-radius: 10px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-left h1 { font-size: 18px; font-weight: 700; margin-bottom: 3px; }
+  .header-left p { font-size: 11px; opacity: 0.7; }
+  .header-stats {
+    display: flex;
+    gap: 20px;
+    text-align: center;
+  }
+  .stat { }
+  .stat .val { font-size: 16px; font-weight: 700; }
+  .stat .lbl { font-size: 10px; opacity: 0.75; margin-top: 1px; }
+  .stat .badge { font-size: 10px; margin-top: 2px; }
+  .red { color: #fca5a5; }
+  .yellow { color: #fde68a; }
+  .green { color: #86efac; }
+
+  /* SECTION */
+  h2 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #0f3460;
+    border-bottom: 1.5px solid #0f3460;
+    padding-bottom: 5px;
+    margin-bottom: 12px;
+  }
+
+  section { margin-bottom: 24px; }
+
+  /* TARGETS ROW */
+  .targets {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .target-card {
+    flex: 1;
+    background: #f1f5f9;
+    border-radius: 8px;
+    padding: 10px 14px;
+    text-align: center;
+  }
+  .target-card .t-val { font-size: 18px; font-weight: 700; color: #0f3460; }
+  .target-card .t-lbl { font-size: 10px; color: #64748b; margin-top: 2px; }
+
+  /* HEALTH CONDITIONS */
+  .conditions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .cond-card {
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .cond-card .cond-title {
+    font-weight: 700;
+    font-size: 12px;
+    color: #991b1b;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cond-card .cond-desc {
+    font-size: 11px;
+    color: #4b5563;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+  .cond-card .cond-list {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .cond-list .ok { color: #166534; }
+  .cond-list .no { color: #b91c1c; }
+  .cond-list .label { font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* PROTOCOL BLOCKS (warm-up / cool-down) */
+  .protocol-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .protocol-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .protocol-head {
+    padding: 8px 12px;
+    font-weight: 700;
+    font-size: 12px;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .protocol-head .req { font-size: 9.5px; background: rgba(255,255,255,0.2); padding: 2px 7px; border-radius: 8px; }
+  .ph-warmup { background: linear-gradient(90deg, #b45309, #d97706); }
+  .ph-cooldown { background: linear-gradient(90deg, #4338ca, #6366f1); }
+  .protocol-body { padding: 6px 0; }
+  .pr-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 11.5px;
+  }
+  .pr-row:last-child { border-bottom: none; }
+  .pr-name { color: #1a1a2e; flex: 1; }
+  .pr-dose { color: #0f3460; font-weight: 600; font-size: 11px; white-space: nowrap; margin-left: 8px; }
+  .pr-tag { font-size: 9.5px; background: #fee2e2; color: #991b1b; padding: 1px 5px; border-radius: 8px; margin-left: 4px; font-weight: 600; }
+
+  /* MEALS */
+  .meals { display: flex; flex-direction: column; gap: 10px; }
+
+  .meal {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .meal-head {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 7px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .meal-head .name { font-weight: 700; font-size: 12px; }
+  .meal-head .meta { font-size: 10.5px; opacity: 0.8; }
+  .meal-head .kcal { font-size: 11px; background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 10px; }
+
+  .meal-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .food-list { padding: 10px 14px; border-right: 1px solid #e2e8f0; }
+  .supp-list { padding: 10px 14px; background: #faf5ff; }
+
+  .food-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 12px;
+  }
+  .food-item:last-child { border-bottom: none; }
+  .food-item .f-name { color: #374151; }
+  .food-item .f-amt { font-weight: 600; color: #0f3460; }
+
+  .supp-item {
+    padding: 3px 0;
+    border-bottom: 1px solid #f3e8ff;
+    font-size: 11.5px;
+    color: #6b21a8;
+  }
+  .supp-item:last-child { border-bottom: none; }
+  .supp-item .s-dose { font-weight: 600; }
+  .col-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin-bottom: 5px; font-weight: 600; }
+
+  /* TOTALS BAR */
+  .totals-bar {
+    background: #1a1a2e;
+    color: #fff;
+    border-radius: 8px;
+    padding: 10px 18px;
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+    margin-top: 10px;
+  }
+  .totals-bar .t { }
+  .totals-bar .tv { font-size: 15px; font-weight: 700; }
+  .totals-bar .tl { font-size: 10px; opacity: 0.7; margin-top: 1px; }
+
+  /* TRAINING */
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .day-pill {
+    border-radius: 6px;
+    padding: 7px 4px;
+    text-align: center;
+    font-size: 10.5px;
+  }
+  .day-pill .d { font-weight: 700; font-size: 11px; margin-bottom: 3px; }
+  .day-pill .s { font-size: 10px; line-height: 1.3; }
+  .dp-lower { background: #dbeafe; color: #1e3a5f; }
+  .dp-upper { background: #e0f2fe; color: #0c4a6e; }
+  .dp-cardio { background: #dcfce7; color: #14532d; }
+  .dp-full { background: #ede9fe; color: #3b0764; }
+  .dp-rest { background: #f1f5f9; color: #475569; }
+
+  .workout-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .workout-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .wc-head {
+    padding: 8px 12px;
+    font-weight: 700;
+    font-size: 12px;
+    color: #fff;
+  }
+  .wc-lower { background: linear-gradient(90deg, #1a1a2e, #0f3460); }
+  .wc-upper { background: linear-gradient(90deg, #1e3a5f, #0369a1); }
+  .wc-full  { background: linear-gradient(90deg, #3b0764, #6d28d9); }
+  .wc-cardio { background: linear-gradient(90deg, #064e3b, #047857); }
+
+  .wc-body { padding: 6px 0; }
+  .ex-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 11.5px;
+  }
+  .ex-row:last-child { border-bottom: none; }
+  .ex-name { color: #1a1a2e; flex: 1; }
+  .ex-sets { color: #0f3460; font-weight: 600; font-size: 11px; white-space: nowrap; margin-left: 8px; }
+  .prehab-tag { font-size: 9.5px; background: #dcfce7; color: #166534; padding: 1px 5px; border-radius: 8px; margin-left: 4px; }
+
+  /* SUPPLEMENTS */
+  .supp-table { width: 100%; border-collapse: collapse; }
+  .supp-table th {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 7px 10px;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .supp-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 12px;
+  }
+  .supp-table tr:nth-child(even) td { background: #f9fafb; }
+  .brand { color: #6b7280; font-style: italic; font-size: 11px; }
+
+  /* PROJECTIONS */
+  .proj-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .proj-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .proj-card .metric { font-size: 11px; color: #6b7280; margin-bottom: 4px; }
+  .proj-card .now { font-size: 13px; font-weight: 700; color: #1a1a2e; }
+  .proj-card .arrow { font-size: 11px; color: #9ca3af; margin: 2px 0; }
+  .proj-card .target { font-size: 12px; font-weight: 600; color: #15803d; }
+  .proj-card .pct-badge { font-size: 10px; padding: 1px 6px; border-radius: 8px; display: inline-block; margin-top: 2px; }
+  .badge-red { background: #fee2e2; color: #dc2626; }
+  .badge-yellow { background: #fef3c7; color: #b45309; }
+  .badge-green { background: #dcfce7; color: #15803d; }
+
+  /* FOOTER */
+  .footer {
+    margin-top: 28px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 10px;
+    font-size: 10px;
+    color: #9ca3af;
+    text-align: center;
+  }
+
+  /* PRINT */
+  @media print {
+    body { padding: 16px 20px; }
+    .workout-grid { grid-template-columns: 1fr 1fr; }
+    .workout-card { break-inside: avoid; }
+    .meal { break-inside: avoid; }
+    section { break-inside: avoid; }
+    @page { margin: 15mm; size: A4; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>Personalized Health Plan</h1>
+    <p>DEXA · BodySpec Chicago · April 18, 2026 · Updated May 4, 2026</p>
+  </div>
+  <div class="header-stats">
+    <div class="stat"><div class="val">54.9 kg</div><div class="lbl">Weight</div></div>
+    <div class="stat"><div class="val">25.6%</div><div class="lbl">Body Fat</div><div class="badge yellow">p22</div></div>
+    <div class="stat"><div class="val">38.9 kg</div><div class="lbl">Lean Mass</div><div class="badge yellow">p48</div></div>
+    <div class="stat"><div class="val">1.116 g/cm²</div><div class="lbl">Bone Density</div><div class="badge red">p15 🔴</div></div>
+  </div>
+</div>
+
+<!-- DAILY TARGETS -->
+<div class="targets">
+  <div class="target-card"><div class="t-val">1,650</div><div class="t-lbl">kcal / day</div></div>
+  <div class="target-card"><div class="t-val">115–120g</div><div class="t-lbl">Protein / day</div></div>
+  <div class="target-card"><div class="t-val">~165g</div><div class="t-lbl">Carbs / day</div></div>
+  <div class="target-card"><div class="t-val">55–60g</div><div class="t-lbl">Fat / day</div></div>
+  <div class="target-card"><div class="t-val">1,000–1,200mg</div><div class="t-lbl">Calcium / day</div></div>
+</div>
+
+<!-- HEALTH CONDITIONS -->
+<section>
+  <h2>Health Conditions — Non-Negotiable Constraints</h2>
+  <div class="conditions">
+    <div class="cond-card">
+      <div class="cond-title">🦵 Chondromalacia Patella (both knees)</div>
+      <div class="cond-desc">Cartilage wear under kneecap. Loaded knee flexion past ~90° aggravates it. All exercise selection must respect this.</div>
+      <div class="cond-list">
+        <div class="label ok">Safe</div>
+        <span class="ok">Hip thrust · RDL · glute bridge · step-up · hamstring curl · cable pull-through · Bulgarian split squat (controlled, vertical shin)</span>
+        <div class="label no" style="margin-top: 6px;">Avoid</div>
+        <span class="no">Deep squat · machine leg extension · forward-knee lunge · jump squat · plyometrics · running</span>
+      </div>
+    </div>
+    <div class="cond-card">
+      <div class="cond-title">⛓️ Calf → Back → Neck Kinetic Chain</div>
+      <div class="cond-desc">Calf contracture pulls unilateral back → trapezius → cervicogenic head/neck tension. The root is the calf. Headaches are downstream.</div>
+      <div class="cond-list">
+        <div class="label ok">Required every session</div>
+        <span class="ok">Calf foam roll (warm-up) · gastroc + soleus stretch · suboccipital release + levator scapulae (cool-down) · scapular stabilization (lower trap, serratus)</span>
+        <div class="label no" style="margin-top: 6px;">Avoid</div>
+        <span class="no">Heavy shrugs · direct upper trap loading · chin-forward rowing/pulldown form</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MANDATORY PROTOCOLS -->
+<section>
+  <h2>Mandatory Warm-Up & Cool-Down — Every Session</h2>
+  <div class="protocol-grid">
+    <div class="protocol-card">
+      <div class="protocol-head ph-warmup"><span>🔥 Warm-Up (8–10 min)</span><span class="req">non-negotiable</span></div>
+      <div class="protocol-body">
+        <div class="pr-row"><span class="pr-name">Light cardio activation (bike / row / incline walk)</span><span class="pr-dose">3–5 min</span></div>
+        <div class="pr-row"><span class="pr-name">Calf foam roll <span class="pr-tag">root fix</span></span><span class="pr-dose">30–45 s/leg</span></div>
+        <div class="pr-row"><span class="pr-name">Standing gastrocnemius stretch (straight knee)</span><span class="pr-dose">30 s/leg</span></div>
+        <div class="pr-row"><span class="pr-name">Bent-knee soleus stretch</span><span class="pr-dose">30 s/leg</span></div>
+        <div class="pr-row"><span class="pr-name">Ear-to-shoulder neck tilt (upper trap release)</span><span class="pr-dose">30 s/side</span></div>
+        <div class="pr-row"><span class="pr-name">Thoracic rotation <span style="font-size:9.5px; color:#6b7280;">(upper days)</span></span><span class="pr-dose">10/side</span></div>
+        <div class="pr-row"><span class="pr-name">Scapular CARs <span style="font-size:9.5px; color:#6b7280;">(upper days)</span></span><span class="pr-dose">5/side</span></div>
+        <div class="pr-row"><span class="pr-name">Hip 90/90 + glute bridge activation <span style="font-size:9.5px; color:#6b7280;">(lower days)</span></span><span class="pr-dose">10 reps</span></div>
+        <div class="pr-row"><span class="pr-name">1–2 activation sets (empty bar / bodyweight)</span><span class="pr-dose">main pattern</span></div>
+      </div>
+    </div>
+    <div class="protocol-card">
+      <div class="protocol-head ph-cooldown"><span>🧊 Cool-Down (8–10 min)</span><span class="req">non-negotiable</span></div>
+      <div class="protocol-body">
+        <div class="pr-row"><span class="pr-name">Hip 90/90 (front + back leg)</span><span class="pr-dose">45 s/side</span></div>
+        <div class="pr-row"><span class="pr-name">Couch stretch (hip flexor + quad)</span><span class="pr-dose">45 s/side</span></div>
+        <div class="pr-row"><span class="pr-name">Pigeon pose</span><span class="pr-dose">45 s/side</span></div>
+        <div class="pr-row"><span class="pr-name">Deep squat hold (supported, no load)</span><span class="pr-dose">60 s</span></div>
+        <div class="pr-row"><span class="pr-name">Frog stretch</span><span class="pr-dose">60 s</span></div>
+        <div class="pr-row"><span class="pr-name">Suboccipital release (chin tuck + elongation) <span class="pr-tag">always</span></span><span class="pr-dose">45 s</span></div>
+        <div class="pr-row"><span class="pr-name">Levator scapulae stretch <span class="pr-tag">always</span></span><span class="pr-dose">45 s/side</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NUTRITION -->
+<section>
+  <h2>Nutrition</h2>
+  <div class="meals">
+
+    <!-- PRE -->
+    <div class="meal">
+      <div class="meal-head">
+        <span class="name">⚡ Pre-Workout</span>
+        <span class="meta">10–30 min before training</span>
+        <span class="kcal">~193 kcal</span>
+      </div>
+      <div class="meal-body">
+        <div class="food-list">
+          <div class="col-label">Food</div>
+          <div class="food-item"><span class="f-name">Banana</span><span class="f-amt">1 medium</span></div>
+          <div class="food-item"><span class="f-name">Egg whites</span><span class="f-amt">3 units</span></div>
+        </div>
+        <div class="supp-list">
+          <div class="col-label">Supplements</div>
+          <div class="supp-item">🟣 Collagen peptides <span class="s-dose">1 heaping tbsp</span></div>
+          <div class="supp-item">🟣 Vitamin C <span class="s-dose">100 mg</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BREAKFAST -->
+    <div class="meal">
+      <div class="meal-head">
+        <span class="name">🌅 Post-Workout / Breakfast</span>
+        <span class="meta">Within 60 min after training</span>
+        <span class="kcal">~470 kcal · ~35g protein</span>
+      </div>
+      <div class="meal-body">
+        <div class="food-list">
+          <div class="col-label">Food</div>
+          <div class="food-item"><span class="f-name">Whole eggs</span><span class="f-amt">3 units</span></div>
+          <div class="food-item"><span class="f-name">Cottage cheese</span><span class="f-amt">½ cup</span></div>
+          <div class="food-item"><span class="f-name">Sweet potato</span><span class="f-amt">1 cup cubed</span></div>
+          <div class="food-item"><span class="f-name">Spinach</span><span class="f-amt">1 cup loosely packed</span></div>
+          <div class="food-item"><span class="f-name">Chia seeds</span><span class="f-amt">1 tbsp</span></div>
+        </div>
+        <div class="supp-list">
+          <div class="col-label">Supplements</div>
+          <div class="supp-item">🟣 Vitamin D3 <span class="s-dose">3,000 IU</span></div>
+          <div class="supp-item">🟣 K2 (MK-7) <span class="s-dose">150 mcg</span></div>
+          <div class="supp-item">🟣 Creatine monohydrate <span class="s-dose">5 g</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LUNCH -->
+    <div class="meal">
+      <div class="meal-head">
+        <span class="name">☀️ Lunch</span>
+        <span class="meta">Protein + fat + carb</span>
+        <span class="kcal">~581 kcal · ~46g protein</span>
+      </div>
+      <div class="meal-body">
+        <div class="food-list">
+          <div class="col-label">Food</div>
+          <div class="food-item"><span class="f-name">Salmon fillet</span><span class="f-amt">palm + half (~5.5 oz)</span></div>
+          <div class="food-item"><span class="f-name">Sweet potato</span><span class="f-amt">⅔ cup</span></div>
+          <div class="food-item"><span class="f-name">Avocado</span><span class="f-amt">½ medium</span></div>
+          <div class="food-item"><span class="f-name">Cottage cheese</span><span class="f-amt">⅓ cup</span></div>
+          <div class="food-item"><span class="f-name">Chia seeds</span><span class="f-amt">1 tbsp</span></div>
+        </div>
+        <div class="supp-list">
+          <div class="col-label">Supplements</div>
+          <div class="supp-item">🟣 Calcium citrate <span class="s-dose">300 mg</span></div>
+          <div class="supp-item">🟣 Omega-3 (EPA+DHA) <span class="s-dose">2–3 g</span></div>
+          <div class="supp-item">🟣 Glucosamine sulfate <span class="s-dose">1,500 mg</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DINNER -->
+    <div class="meal">
+      <div class="meal-head">
+        <span class="name">🌙 Dinner</span>
+        <span class="meta">Lower carbs · take magnesium before bed</span>
+        <span class="kcal">~418 kcal · ~36g protein</span>
+      </div>
+      <div class="meal-body">
+        <div class="food-list">
+          <div class="col-label">Food</div>
+          <div class="food-item"><span class="f-name">Chicken breast</span><span class="f-amt">1 palm-sized piece</span></div>
+          <div class="food-item"><span class="f-name">Broccoli / mixed veggies</span><span class="f-amt">2 cups</span></div>
+          <div class="food-item"><span class="f-name">Extra virgin olive oil</span><span class="f-amt">1½ tbsp</span></div>
+          <div class="food-item"><span class="f-name">Chia seeds</span><span class="f-amt">2 tsp</span></div>
+        </div>
+        <div class="supp-list">
+          <div class="col-label">Before bed</div>
+          <div class="supp-item">🟣 Magnesium glycinate <span class="s-dose">300–400 mg</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TOTALS -->
+  <div class="totals-bar">
+    <div class="t"><div class="tv">~137 g</div><div class="tl">Protein ✅</div></div>
+    <div class="t"><div class="tv">~1,086 mg</div><div class="tl">Calcium ✅</div></div>
+    <div class="t"><div class="tv">~1,662 kcal</div><div class="tl">Total calories ✅</div></div>
+    <div class="t"><div class="tv">~119 g</div><div class="tl">Carbs</div></div>
+    <div class="t"><div class="tv">~58 g</div><div class="tl">Fat</div></div>
+  </div>
+</section>
+
+<!-- TRAINING SCHEDULE -->
+<section>
+  <h2>Training — Weekly Schedule</h2>
+  <div class="week-grid">
+    <div class="day-pill dp-lower"><div class="d">Mon</div><div class="s">Lower Body A</div></div>
+    <div class="day-pill dp-upper"><div class="d">Tue</div><div class="s">Upper Body</div></div>
+    <div class="day-pill dp-cardio"><div class="d">Wed</div><div class="s">Cardio Z2</div></div>
+    <div class="day-pill dp-lower"><div class="d">Thu</div><div class="s">Lower Body B</div></div>
+    <div class="day-pill dp-full"><div class="d">Fri</div><div class="s">Full Body + Core</div></div>
+    <div class="day-pill dp-cardio"><div class="d">Sat</div><div class="s">Cardio HIIT</div></div>
+    <div class="day-pill dp-rest"><div class="d">Sun</div><div class="s">Rest / Walk</div></div>
+  </div>
+
+  <div class="workout-grid">
+
+    <!-- Lower A -->
+    <div class="workout-card">
+      <div class="wc-head wc-lower">Monday — Lower Body A · Glutes & Hamstrings</div>
+      <div class="wc-body">
+        <div class="ex-row"><span class="ex-name">Barbell hip thrust</span><span class="ex-sets">4 × 10–15</span></div>
+        <div class="ex-row"><span class="ex-name">Romanian deadlift (RDL)</span><span class="ex-sets">4 × 10–12</span></div>
+        <div class="ex-row"><span class="ex-name">Bulgarian split squat (vertical shin)</span><span class="ex-sets">3 × 10/side</span></div>
+        <div class="ex-row"><span class="ex-name">Seated hamstring curl</span><span class="ex-sets">3 × 12–15</span></div>
+        <div class="ex-row"><span class="ex-name">Cable pull-through</span><span class="ex-sets">3 × 15</span></div>
+        <div class="ex-row"><span class="ex-name">Terminal knee extensions w/ band <span class="prehab-tag">prehab</span></span><span class="ex-sets">3 × 15</span></div>
+        <div class="ex-row"><span class="ex-name">Clamshells w/ band <span class="prehab-tag">prehab</span></span><span class="ex-sets">3 × 20</span></div>
+      </div>
+    </div>
+
+    <!-- Upper -->
+    <div class="workout-card">
+      <div class="wc-head wc-upper">Tuesday — Upper Body · Shoulders & Back</div>
+      <div class="wc-body">
+        <div class="ex-row"><span class="ex-name">Dumbbell shoulder press</span><span class="ex-sets">4 × 10–12</span></div>
+        <div class="ex-row"><span class="ex-name">Lat pulldown <span style="font-size:9.5px; color:#6b7280;">(chin neutral)</span></span><span class="ex-sets">3 × 10–12</span></div>
+        <div class="ex-row"><span class="ex-name">Single-arm dumbbell row</span><span class="ex-sets">3 × 10/side</span></div>
+        <div class="ex-row"><span class="ex-name">Dumbbell bench press</span><span class="ex-sets">3 × 10–12</span></div>
+        <div class="ex-row"><span class="ex-name">Face pulls (cable) <span class="prehab-tag">scap stab</span></span><span class="ex-sets">3 × 15</span></div>
+        <div class="ex-row"><span class="ex-name">Prone Y-T-W (lower trap) <span class="prehab-tag">scap stab</span></span><span class="ex-sets">3 × 10 each</span></div>
+        <div class="ex-row"><span class="ex-name">Eccentric calf raise (3 s down) <span class="prehab-tag">chain fix</span></span><span class="ex-sets">3 × 12</span></div>
+        <div class="ex-row"><span class="ex-name">Weighted plank</span><span class="ex-sets">3 × 30–45 s</span></div>
+        <div class="ex-row"><span class="ex-name">Bicep curl + tricep extension</span><span class="ex-sets">2 × 12 each</span></div>
+      </div>
+    </div>
+
+    <!-- Lower B -->
+    <div class="workout-card">
+      <div class="wc-head wc-lower">Thursday — Lower Body B · Posterior Chain & VMO</div>
+      <div class="wc-body">
+        <div class="ex-row"><span class="ex-name">Single-leg hip thrust</span><span class="ex-sets">4 × 10–12/side</span></div>
+        <div class="ex-row"><span class="ex-name">Reverse lunge (knee tracks behind toe)</span><span class="ex-sets">4 × 10/side</span></div>
+        <div class="ex-row"><span class="ex-name">Glute bridge (pause at top)</span><span class="ex-sets">3 × 15</span></div>
+        <div class="ex-row"><span class="ex-name">Low-box step-up (controlled)</span><span class="ex-sets">3 × 10/side</span></div>
+        <div class="ex-row"><span class="ex-name">Eccentric calf raise (3 s down) <span class="prehab-tag">chain fix</span></span><span class="ex-sets">3 × 15</span></div>
+        <div class="ex-row"><span class="ex-name">Banded lateral walk <span class="prehab-tag">prehab</span></span><span class="ex-sets">3 × 20 steps</span></div>
+        <div class="ex-row"><span class="ex-name">Shallow wall sit (60°) <span class="prehab-tag">prehab</span></span><span class="ex-sets">3 × 30–40 s</span></div>
+        <div class="ex-row"><span class="ex-name">Single-leg balance <span class="prehab-tag">prehab</span></span><span class="ex-sets">3 × 30 s/side</span></div>
+      </div>
+    </div>
+
+    <!-- Full Body -->
+    <div class="workout-card">
+      <div class="wc-head wc-full">Friday — Full Body + Core · Axial Loading</div>
+      <div class="wc-body">
+        <div class="ex-row"><span class="ex-name">Conventional deadlift</span><span class="ex-sets">4 × 6–8</span></div>
+        <div class="ex-row"><span class="ex-name">Dumbbell shoulder press</span><span class="ex-sets">3 × 10–12</span></div>
+        <div class="ex-row"><span class="ex-name">Goblet box squat (knee-safe depth)</span><span class="ex-sets">3 × 12</span></div>
+        <div class="ex-row"><span class="ex-name">Cable row</span><span class="ex-sets">3 × 10–12</span></div>
+        <div class="ex-row"><span class="ex-name">Lateral raises</span><span class="ex-sets">3 × 15</span></div>
+        <div class="ex-row"><span class="ex-name">Dead bug / Pallof press</span><span class="ex-sets">3 × 10–12</span></div>
+        <div class="ex-row"><span class="ex-name">Foam roll quads + IT band <span class="prehab-tag">prehab</span></span><span class="ex-sets">5–8 min</span></div>
+      </div>
+    </div>
+
+    <!-- Cardio -->
+    <div class="workout-card" style="grid-column: span 2;">
+      <div class="wc-head wc-cardio">Wednesday (Steady) & Saturday (HIIT) — Cardio · 30–45 min · Low Impact Only</div>
+      <div class="wc-body" style="display: grid; grid-template-columns: 1fr 1fr;">
+        <div>
+          <div class="ex-row"><span class="ex-name">✅ Wed: Incline walk Z2 (10–12%, 4–5 km/h, 35–45 min)</span><span class="ex-sets">BMD + Z2</span></div>
+          <div class="ex-row"><span class="ex-name">✅ Sat: HIIT on incline / elliptical (30 s on, 90 s off ×8–10)</span><span class="ex-sets">VO2 max</span></div>
+        </div>
+        <div>
+          <div class="ex-row"><span class="ex-name">⚪ Stationary bike (no BMD benefit)</span><span class="ex-sets">Occasional</span></div>
+          <div class="ex-row"><span class="ex-name" style="color:#dc2626;">❌ Running / jump rope / plyometrics</span><span class="ex-sets" style="color:#dc2626;">Avoid</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- SUPPLEMENTS -->
+<section>
+  <h2>Supplement Stack</h2>
+  <table class="supp-table">
+    <thead>
+      <tr><th>Supplement</th><th>Dose</th><th>When</th><th>Brand</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Collagen peptides + Vitamin C</td><td>1 tbsp + 100 mg</td><td>Pre-workout</td><td class="brand">Vital Proteins · Momentous</td></tr>
+      <tr><td>Vitamin D3 + K2 (MK-7)</td><td>3,000 IU + 150 mcg</td><td>Post-workout with food</td><td class="brand">Thorne D3+K2</td></tr>
+      <tr><td>Creatine monohydrate</td><td>5 g</td><td>Post-workout</td><td class="brand">Thorne · Momentous</td></tr>
+      <tr><td>Calcium citrate</td><td>300 mg</td><td>Lunch</td><td class="brand">Thorne · Solgar</td></tr>
+      <tr><td>Omega-3 (EPA+DHA)</td><td>2–3 g</td><td>Lunch</td><td class="brand">Carlson · Nordic Naturals</td></tr>
+      <tr><td>Glucosamine sulfate</td><td>1,500 mg</td><td>Lunch</td><td class="brand">Thorne · NOW Sports</td></tr>
+      <tr><td>Magnesium glycinate</td><td>300–400 mg</td><td>Before bed</td><td class="brand">Thorne · Pure Encapsulations</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- PROJECTIONS -->
+<section>
+  <h2>6-Month Goals · Next DEXA: October 2026</h2>
+  <div class="proj-grid">
+    <div class="proj-card">
+      <div class="metric">Bone Density</div>
+      <div class="now">1.116 g/cm²</div>
+      <div class="arrow">↓ today <span class="pct-badge badge-red">p15</span></div>
+      <div class="target">→ +0.02–0.05 g/cm²</div>
+      <div><span class="pct-badge badge-yellow">target p18–22</span></div>
+    </div>
+    <div class="proj-card">
+      <div class="metric">Leg Lean Mass</div>
+      <div class="now">29.7 lbs</div>
+      <div class="arrow">↓ today <span class="pct-badge badge-yellow">p32</span></div>
+      <div class="target">→ 31–32 lbs</div>
+      <div><span class="pct-badge badge-green">target p38–42</span></div>
+    </div>
+    <div class="proj-card">
+      <div class="metric">ALMI</div>
+      <div class="now">7.01 kg/m²</div>
+      <div class="arrow">↓ today <span class="pct-badge badge-yellow">p44</span></div>
+      <div class="target">→ 7.3–7.4 kg/m²</div>
+      <div><span class="pct-badge badge-green">target p50–52</span></div>
+    </div>
+    <div class="proj-card">
+      <div class="metric">Total Lean Mass</div>
+      <div class="now">85.7 lbs</div>
+      <div class="arrow">↓ today</div>
+      <div class="target">→ 87–89 lbs</div>
+      <div><span class="pct-badge badge-green">+2–3 lbs</span></div>
+    </div>
+    <div class="proj-card">
+      <div class="metric">Body Fat %</div>
+      <div class="now">25.6%</div>
+      <div class="arrow">↓ today <span class="pct-badge badge-yellow">p22</span></div>
+      <div class="target">→ 23–25%</div>
+      <div><span class="pct-badge badge-green">slow recomp</span></div>
+    </div>
+    <div class="proj-card">
+      <div class="metric">VAT Volume</div>
+      <div class="now">112.5 cm³</div>
+      <div class="arrow">↓ today <span class="pct-badge badge-yellow">p37</span></div>
+      <div class="target">→ &lt;100 cm³</div>
+      <div><span class="pct-badge badge-green">target p40+</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="footer">
+  Scan ID: fc92d347aafc4c5ab2152a60bce3522d · BodySpec Chicago · April 18, 2026 · This plan does not replace medical advice.
+</div>
+
+</body>
+</html>

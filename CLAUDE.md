@@ -7,14 +7,13 @@ You have Google Drive MCP (read) and Dexacsan MCP. You do NOT have bash_tool or 
 
 ## Workout storage
 
-**Single source of truth: Google Sheet "Workout Log"**
-- **Sheet ID:** `1Utiri7Nd68twJJcKkZJXFX7yI3cGwIwp4pgMCYGSg3w`
-- **Write endpoint (Apps Script):** `https://script.google.com/macros/s/AKfycbwJCYRuS07cs3zieBo4yiawiMLG1Qra3gJoq_zEDb1hQ5vh0haw6HKaLz4rgwGoJwiTLA/exec`
-- **Secret:** `thaiz-gym-2026`
-- **Columns:** Date | Workout | Exercise | Set | Weight (kg) | Reps | Side | Notes
+**Single source of truth: GitHub repo `workouts/data/`**
+- **Repo:** `thaizbar-debug/coach`
+- **File format:** one JSON file per session — `workouts/data/YYYY-MM-DD.json`
+- **Schema:** `{ date, workout, exercises: [{ name, sets: [{ set, weight_kg, reps, side?, notes? }] }], notes? }`
 
-**Read:** Use `mcp__claude_ai_Google_Drive__read_file_content` with the Sheet ID above.
-**Write:** You cannot call the endpoint directly. Instead, collect all session data and give the user ONE save URL at the end of the session (see below).
+**Read:** Use `mcp__github__get_file_contents` to fetch individual files, or list the folder to find all sessions.
+**Write:** After cool-down, use `mcp__github__create_or_update_file` to commit the session JSON directly to the repo.
 
 ---
 
@@ -23,67 +22,72 @@ You have Google Drive MCP (read) and Dexacsan MCP. You do NOT have bash_tool or 
 | User says | Action |
 |---|---|
 | `hello` / `good morning` / first message of the day | Pre-workout nutrition for today's session (Phase 1 — see SKILL.md) |
-| `I'm at the gym` / `let's start` / `I'm here` / `starting` | Warm-up + mobility, then read sheet history (Phase 2 — see SKILL.md) |
+| `I'm at the gym` / `let's start` / `I'm here` / `starting` | Warm-up + mobility, then read GitHub history (Phase 2 — see SKILL.md) |
 | User confirms warm-up done | Begin exercise-by-exercise coaching (Phase 3 — see SKILL.md) |
 | User provides weights/reps for an exercise | Acknowledge + progression note → next exercise. Collect data in memory. |
-| All exercises done + cool-down given | Show session summary + tab-separated paste block (see below) |
+| All exercises done + cool-down given | Show session summary + save JSON to GitHub |
 
 ---
 
 ## Reading workout history
 
-Use Google Drive MCP:
+Use `mcp__github__get_file_contents` to list and read files in `workouts/data/`:
+
 ```
-mcp__claude_ai_Google_Drive__read_file_content(fileId: "1Utiri7Nd68twJJcKkZJXFX7yI3cGwIwp4pgMCYGSg3w")
+mcp__github__get_file_contents(owner: "thaizbar-debug", repo: "coach", path: "workouts/data")
 ```
 
-This returns all rows as CSV. Parse them. Group by exercise name. Find the most recent date per exercise and extract sets/reps/weights.
+Then fetch each JSON file needed. Parse all sessions. Group by exercise name. Find the most recent date per exercise and extract sets/reps/weights.
 
 ---
 
-## Writing workout data — fully automated via staging folder
+## Writing workout data — commit JSON to GitHub
 
-You cannot make HTTP calls from claude.ai. Instead, use the Google Drive MCP to drop a CSV file into the staging folder. An Apps Script trigger picks it up every 30 minutes, appends the rows to the Workout Log sheet automatically, and deletes the staging file. The user does nothing.
-
-**Staging folder ID:** `1yPug7jK1iZFlkhSuMBbdUCf9AsZQz_bU`
-
-### Step 1 — Collect all rows during Phase 3
-
-As the user reports each exercise, build up the data in memory. Each set = one row with these columns:
-`Date, Workout, Exercise, Set, Weight (kg), Reps, Side, Notes`
-
-Rules: no unit = kg. lb → divide by 2.2046, round to 1 decimal. Capitalize exercise names.
-
-### Step 2 — After cool-down: create the CSV staging file
-
-Build a CSV string with a header row + all session rows, then call:
+After the cool-down, build the session JSON and commit it:
 
 ```
-mcp__claude_ai_Google_Drive__create_file(
-  title: "workout-YYYY-MM-DD",
-  textContent: "Date,Workout,Exercise,Set,Weight (kg),Reps,Side,Notes\n2026-05-04,Lower A,Hip Thrust,1,43,10,,\n2026-05-04,Lower A,Hip Thrust,2,43,10,,\n...",
-  contentMimeType: "text/csv",
-  parentId: "1yPug7jK1iZFlkhSuMBbdUCf9AsZQz_bU"
+mcp__github__create_or_update_file(
+  owner: "thaizbar-debug",
+  repo: "coach",
+  path: "workouts/data/YYYY-MM-DD.json",
+  message: "log: YYYY-MM-DD [Workout Name]",
+  content: "<base64-encoded JSON>",
+  branch: "main"
 )
 ```
 
-### Step 3 — Show the session summary
+JSON format:
+```json
+{
+  "date": "YYYY-MM-DD",
+  "workout": "Lower A",
+  "exercises": [
+    {
+      "name": "Barbell Hip Thrust",
+      "sets": [
+        { "set": 1, "weight_kg": 43, "reps": 15 },
+        { "set": 2, "weight_kg": 43, "reps": 15 }
+      ]
+    }
+  ],
+  "notes": "Optional session notes."
+}
+```
 
-After the file is created, confirm to the user:
+Rules: no unit = kg. lb → divide by 2.2046, round to 1 decimal. Capitalize exercise names.
+
+### After saving: show the session summary
 
 ```
 Session done — [Day Date]  |  [Workout Name]
 
-  Hip Thrust            4 × 10   @ 43 kg
-  Romanian DL           3 × 10   @ 52 kg
-  Bulgarian Split Squat 2 × 10   @ 11 kg
+  Hip Thrust            4 × 15   @ 43 kg
+  Bulgarian Split Squat 3 × 12   @ 11.3 kg
 
   Total: [X] sets  ·  Volume: [X] kg
 
-✓ Saved to staging — your sheet will update within 30 min.
+✓ Saved.
 ```
-
-Do NOT mention the staging file or the folder to the user. Just say it's saved.
 
 ---
 
@@ -91,7 +95,7 @@ Do NOT mention the staging file or the folder to the user. Just say it's saved.
 
 ### Phase 2 — Load history
 
-When user arrives at the gym, read the full sheet via Google Drive MCP (see above). Parse all rows. Group by exercise name. For each exercise, find the most recent date and its sets/reps/weights.
+When user arrives at the gym, read JSON files from `workouts/data/` via GitHub MCP (see above). Parse all sessions. Group by exercise name. For each exercise, find the most recent date and its sets/reps/weights.
 
 ### Phase 3 — Progressive overload decision (per exercise)
 

@@ -25,8 +25,8 @@ You have Google Drive MCP (read) and Dexacsan MCP. You do NOT have bash_tool or 
 | `hello` / `good morning` / first message of the day | Pre-workout nutrition for today's session (Phase 1 — see SKILL.md) |
 | `I'm at the gym` / `let's start` / `I'm here` / `starting` | Warm-up + mobility, then read sheet history (Phase 2 — see SKILL.md) |
 | User confirms warm-up done | Begin exercise-by-exercise coaching (Phase 3 — see SKILL.md) |
-| User provides weights/reps for an exercise | Acknowledge + progression note → next exercise. Do NOT try to save yet. |
-| All exercises done + cool-down given | Generate the batch save URL (see below) |
+| User provides weights/reps for an exercise | Acknowledge + progression note → next exercise. Collect data in memory. |
+| All exercises done + cool-down given | Show session summary + tab-separated paste block (see below) |
 
 ---
 
@@ -41,51 +41,47 @@ This returns all rows as CSV. Parse them. Group by exercise name. Find the most 
 
 ---
 
-## Writing workout data — batch save URL
+## Writing workout data — paste into sheet
 
-You cannot call the Apps Script endpoint directly. Instead, at the end of the session (after cool-down), encode all collected rows and give the user a single URL to open in their browser. Opening that URL saves everything at once.
+You cannot make HTTP calls from claude.ai. Do not try. Do not mention it.
+
+Instead, at the end of the session (after cool-down), output the session data as **tab-separated rows** that the user pastes directly into the Google Sheet. This always works, requires no encoding, no curl, no URLs.
 
 ### Step 1 — Collect all rows during Phase 3
 
-As the user reports each exercise, build up the rows array in memory. Each set = one row object:
-```json
-{ "date": "YYYY-MM-DD", "workout": "Session Name", "exercise": "Hip Thrust", "set": 1, "weight_kg": 60, "reps": 12, "side": "", "notes": "" }
-```
+As the user reports each exercise, build up the data in memory. Each set = one row:
+
+| Date | Workout | Exercise | Set | Weight (kg) | Reps | Side | Notes |
 
 Rules: no unit = kg. lb → divide by 2.2046, round to 1 decimal. Capitalize exercise names.
 
-### Step 2 — After cool-down: generate the save URL
+### Step 2 — After cool-down: output session summary + paste block
 
-Base64-encode the full rows array (no line breaks), then build this URL:
-```
-https://script.google.com/macros/s/AKfycbwJCYRuS07cs3zieBo4yiawiMLG1Qra3gJoq_zEDb1hQ5vh0haw6HKaLz4rgwGoJwiTLA/exec?action=write&secret=thaiz-gym-2026&data=BASE64_HERE
-```
-
-### Step 3 — Show the user the session summary + save link
+Show the clean summary first, then the paste block:
 
 ```
-Session done.
+Session done — [Day Date]  |  [Workout Name]
 
-  Hip Thrust          4 × 10   @ 43 kg
-  Romanian DL         3 × 10   @ 52 kg
-  Bulgarian Split Squat  2 × 10   @ 11 kg
-  ...
+  Hip Thrust            4 × 10   @ 43 kg
+  Romanian DL           3 × 10   @ 52 kg
+  Bulgarian Split Squat 2 × 10   @ 11 kg
 
   Total: [X] sets  ·  Volume: [X] kg
 
-→ Open this link to save to your sheet:
-[URL]
+──────────────────────────────────────────
+Paste these rows into your Workout Log sheet
+(go to the first empty row, click the Date cell, paste):
+
+2026-05-04	Lower A	Hip Thrust	1	43	10		
+2026-05-04	Lower A	Hip Thrust	2	43	10		
+2026-05-04	Lower A	Hip Thrust	3	43	10		
+2026-05-04	Lower A	Hip Thrust	4	43	10		
+2026-05-04	Lower A	Romanian DL	1	52	10		
+...
+──────────────────────────────────────────
 ```
 
-The URL opens in a browser tab, saves silently, and closes. That's it.
-
-### If the session has more than 15 rows
-
-Split into batches of 15 rows max. Generate one URL per batch. Number them clearly:
-```
-→ Save link 1 of 2: [URL]
-→ Save link 2 of 2: [URL]
-```
+The separator between columns is a **tab character** (`\t`). When the user pastes into Google Sheets, each tab becomes a new column automatically — no manual splitting needed.
 
 ---
 

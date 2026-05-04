@@ -34,13 +34,13 @@ Use `bash_tool` to download and parse `workouts/data/Workout Log.xlsx`:
 ```bash
 # Download the file
 gh api "repos/thaizbar-debug/coach/contents/workouts/data/Workout%20Log.xlsx" \
-  --jq '.content' | tr -d '\n' | base64 -d > /tmp/workout_log.xlsx
+  --jq '.content' | tr -d '\n' | base64 -d > "$TEMP/workout_log.xlsx"
 
 # Parse all rows
 python3 - <<'EOF'
-import openpyxl, json
-wb = openpyxl.load_workbook("/tmp/workout_log.xlsx", data_only=True)
-ws = wb.active
+import openpyxl, json, os
+wb = openpyxl.load_workbook(os.environ["TEMP"] + "/workout_log.xlsx", data_only=True)
+ws = wb["Log"]
 headers = [str(c.value) for c in ws[1]]
 rows = []
 for row in ws.iter_rows(min_row=2, values_only=True):
@@ -83,23 +83,24 @@ SHA=$(gh api "repos/thaizbar-debug/coach/contents/workouts/data/Workout%20Log.xl
 
 # 2. Download current file
 gh api "repos/thaizbar-debug/coach/contents/workouts/data/Workout%20Log.xlsx" \
-  --jq '.content' | tr -d '\n' | base64 -d > /tmp/workout_log.xlsx
+  --jq '.content' | tr -d '\n' | base64 -d > "$TEMP/workout_log.xlsx"
 
 # 3. Append new rows (replace ROWS_JSON with actual data)
 python3 - <<'EOF'
-import openpyxl, json, sys
+import openpyxl, json, sys, os
 rows = ROWS_JSON  # list of dicts: date, workout, exercise, set, weight_kg, reps, side, notes
-wb = openpyxl.load_workbook("/tmp/workout_log.xlsx")
-ws = wb.active
+path = os.environ["TEMP"] + "/workout_log.xlsx"
+wb = openpyxl.load_workbook(path)
+ws = wb["Log"]
 for r in rows:
     ws.append([r["date"], r.get("workout",""), r["exercise"], r["set"],
                r["weight_kg"], r["reps"], r.get("side",""), r.get("notes","")])
-wb.save("/tmp/workout_log.xlsx")
+wb.save(path)
 print("ok")
 EOF
 
 # 4. Re-encode and upload
-ENCODED=$(base64 -w 0 /tmp/workout_log.xlsx)
+ENCODED=$(base64 -w 0 "$TEMP/workout_log.xlsx")
 gh api -X PUT "repos/thaizbar-debug/coach/contents/workouts/data/Workout%20Log.xlsx" \
   -f message="gym: $(date +%Y-%m-%d) — EXERCISE_NAME" \
   -f content="$ENCODED" \

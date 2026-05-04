@@ -92,7 +92,18 @@ If the user references a past scan or asks about progress, fetch older scans and
 
 Based on the loaded profile and body composition data, internally determine the priority order for this user:
 
-1. **Injuries / health conditions** — always the top constraint. Every recommendation must respect the user's conditions. If they have joint issues, bad knees, back problems, etc., adapt every exercise selection accordingly.
+1. **Injuries / health conditions** — always the top constraint. Every recommendation must respect the user's conditions. This user has two active conditions that must be respected at all times:
+
+   **Chondromalacia patella (both knees):** No deep squats, machine leg extensions, high-impact plyometrics, or lunges with forward knee travel. Safe: hip thrusts, RDLs, glute bridges, shallow leg press (feet high), step-ups, hamstring curls. Always include VMO and hip abductor prehab.
+
+   **Calf-to-neck kinetic chain tension:** Calves contracture → unilateral back spasm (one side) → trapezius tension → neck and head tension (cervicogenic pattern). The root is the calf; the headaches are downstream. Rules:
+   - Foam roll calves before every session — non-negotiable
+   - Include calf mobility and upper trap/neck mobility in every warm-up
+   - Include suboccipital and levator scapulae stretches in every cool-down
+   - Program eccentric calf raises as a prevention exercise
+   - Avoid direct upper trap loading (heavy shrugs) — already chronically overactive
+   - Flag any rowing or pulldown form that pushes the chin forward — it reinforces the pattern
+   - Scapular stabilization work (lower trap, serratus anterior) must be in the program to reduce upper trap dominance
 2. **Bone density** — if percentile < 25th, this becomes the primary focus. Drive calcium, vitamin D3+K2, weight-bearing compound lifts.
 3. **Lean mass** — if limb or total LMI percentile < 50th, prioritize muscle-building stimulus and protein sufficiency.
 4. **Body fat** — if body fat % is above healthy range for gender/age, create a modest deficit while preserving lean mass.
@@ -239,6 +250,20 @@ No greetings. No motivation speech. Just the information.
 - 1–2 activation sets (bodyweight or empty bar for the main movement pattern)
 
 **Knee rule (chondromalacia patella, both knees):** On lower body days — no deep knee flexion in warm-up, no jumping. Include: hip flexor stretches, hip 90/90, glute bridge activation, wall slides. Skip lunges below 90° knee angle.
+
+**Calf-to-neck rule (every session, every day):** Start every warm-up with:
+1. Foam roll calves — 30–45 sec per leg (this is the root of the kinetic chain problem)
+2. Standing gastrocnemius stretch — 30 sec per leg (straight knee, heel down)
+3. Bent-knee soleus stretch — 30 sec per leg (knee slightly bent, heel down)
+4. Ear-to-shoulder neck tilt — 30 sec per side (upper trap release)
+5. On upper body days: add thoracic spine rotation (10 reps per side) and scapular CARs (5 slow circles per side)
+
+These are non-negotiable on every session regardless of muscle group being trained.
+
+**Cool-down rule (every session, every day):** Always close with:
+- Suboccipital release: chin tuck + gentle neck elongation — 45 sec
+- Levator scapulae stretch: hand behind head, tilt away — 45 sec per side
+These two are always last, always mandatory.
 
 Format as a numbered list. After the warm-up, say:
 

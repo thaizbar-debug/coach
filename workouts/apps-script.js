@@ -1,14 +1,59 @@
 // Google Apps Script — Workout Log
 // Extensions → Apps Script → paste → Save → Deploy → New deployment
 // Type: Web App | Execute as: Me | Who has access: Anyone
+//
+// After pasting and deploying, set up the auto-import trigger:
+//   Triggers (clock icon) → Add Trigger → processStagingFiles
+//   Event source: Time-driven | Type: Minutes timer | Every 30 minutes
 
 const SECRET = "thaiz-gym-2026";
+const STAGING_FOLDER_ID = "1yPug7jK1iZFlkhSuMBbdUCf9AsZQz_bU";
 
-// All requests come in as GET (Google redirects POST→GET for web apps)
-// Write: ?action=write&secret=...&data=BASE64_JSON
-// Read all: ?action=read&secret=...
-// Read by date: ?action=read&secret=...&date=YYYY-MM-DD
+// ---------------------------------------------------------------------------
+// Auto-import: runs every 30 min, picks up CSV files the coach drops in the
+// staging folder, appends rows to the Log sheet, then trashes the file.
+// ---------------------------------------------------------------------------
+function processStagingFiles() {
+  const folder = DriveApp.getFolderById(STAGING_FOLDER_ID);
+  const files = folder.getFiles();
 
+  while (files.hasNext()) {
+    const file = files.next();
+    const mime = file.getMimeType();
+
+    let rows = [];
+
+    if (mime === "application/vnd.google-apps.spreadsheet") {
+      // CSV auto-converted to Google Sheet by Drive
+      const stagingSheet = SpreadsheetApp.openById(file.getId()).getSheets()[0];
+      const values = stagingSheet.getDataRange().getValues();
+      rows = values.filter((r, i) => i > 0 && r[0] !== "" && r[0] !== "Date");
+    } else if (mime === "text/csv" || mime === "text/plain") {
+      const csv = file.getBlob().getDataAsString();
+      rows = Utilities.parseCsv(csv)
+        .filter((r, i) => i > 0 && r[0] !== "" && r[0] !== "Date")
+        .map(r => r.map(cell => cell.trim()));
+    }
+
+    if (rows.length > 0) {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      let sheet = ss.getSheetByName("Log");
+      if (!sheet) {
+        sheet = ss.insertSheet("Log");
+        sheet.appendRow(["Date", "Workout", "Exercise", "Set", "Weight (kg)", "Reps", "Side", "Notes"]);
+        sheet.setFrozenRows(1);
+        sheet.getRange(1, 1, 1, 8).setFontWeight("bold");
+      }
+      rows.forEach(r => sheet.appendRow(r));
+    }
+
+    file.setTrashed(true);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Web app (kept for manual/terminal use)
+// ---------------------------------------------------------------------------
 function doGet(e) {
   const p = e.parameter;
   if (p.secret !== SECRET) return json({ error: "unauthorized" });

@@ -41,23 +41,35 @@ This returns all rows as CSV. Parse them. Group by exercise name. Find the most 
 
 ---
 
-## Writing workout data — paste into sheet
+## Writing workout data — fully automated via staging folder
 
-You cannot make HTTP calls from claude.ai. Do not try. Do not mention it.
+You cannot make HTTP calls from claude.ai. Instead, use the Google Drive MCP to drop a CSV file into the staging folder. An Apps Script trigger picks it up every 30 minutes, appends the rows to the Workout Log sheet automatically, and deletes the staging file. The user does nothing.
 
-Instead, at the end of the session (after cool-down), output the session data as **tab-separated rows** that the user pastes directly into the Google Sheet. This always works, requires no encoding, no curl, no URLs.
+**Staging folder ID:** `1yPug7jK1iZFlkhSuMBbdUCf9AsZQz_bU`
 
 ### Step 1 — Collect all rows during Phase 3
 
-As the user reports each exercise, build up the data in memory. Each set = one row:
-
-| Date | Workout | Exercise | Set | Weight (kg) | Reps | Side | Notes |
+As the user reports each exercise, build up the data in memory. Each set = one row with these columns:
+`Date, Workout, Exercise, Set, Weight (kg), Reps, Side, Notes`
 
 Rules: no unit = kg. lb → divide by 2.2046, round to 1 decimal. Capitalize exercise names.
 
-### Step 2 — After cool-down: output session summary + paste block
+### Step 2 — After cool-down: create the CSV staging file
 
-Show the clean summary first, then the paste block:
+Build a CSV string with a header row + all session rows, then call:
+
+```
+mcp__claude_ai_Google_Drive__create_file(
+  title: "workout-YYYY-MM-DD",
+  textContent: "Date,Workout,Exercise,Set,Weight (kg),Reps,Side,Notes\n2026-05-04,Lower A,Hip Thrust,1,43,10,,\n2026-05-04,Lower A,Hip Thrust,2,43,10,,\n...",
+  contentMimeType: "text/csv",
+  parentId: "1yPug7jK1iZFlkhSuMBbdUCf9AsZQz_bU"
+)
+```
+
+### Step 3 — Show the session summary
+
+After the file is created, confirm to the user:
 
 ```
 Session done — [Day Date]  |  [Workout Name]
@@ -68,20 +80,10 @@ Session done — [Day Date]  |  [Workout Name]
 
   Total: [X] sets  ·  Volume: [X] kg
 
-──────────────────────────────────────────
-Paste these rows into your Workout Log sheet
-(go to the first empty row, click the Date cell, paste):
-
-2026-05-04	Lower A	Hip Thrust	1	43	10		
-2026-05-04	Lower A	Hip Thrust	2	43	10		
-2026-05-04	Lower A	Hip Thrust	3	43	10		
-2026-05-04	Lower A	Hip Thrust	4	43	10		
-2026-05-04	Lower A	Romanian DL	1	52	10		
-...
-──────────────────────────────────────────
+✓ Saved to staging — your sheet will update within 30 min.
 ```
 
-The separator between columns is a **tab character** (`\t`). When the user pastes into Google Sheets, each tab becomes a new column automatically — no manual splitting needed.
+Do NOT mention the staging file or the folder to the user. Just say it's saved.
 
 ---
 

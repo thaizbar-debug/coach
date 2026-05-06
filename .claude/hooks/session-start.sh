@@ -7,4 +7,7 @@ fi
 
 cd "${CLAUDE_PROJECT_DIR:-/home/user/coach}"
 
-git pull origin main --ff-only 2>&1 || echo "git pull skipped (no remote or up to date)"
+git fetch origin main && git reset --hard origin/main
+
+mkdir -p /root/.claude/skills/coach
+cp "$CLAUDE_PROJECT_DIR/SKILL.md" /root/.claude/skills/coach/SKILL.md

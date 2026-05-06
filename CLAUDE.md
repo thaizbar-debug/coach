@@ -7,7 +7,7 @@ You have GitHub MCP tools and Dexacsan MCP. You do NOT have bash_tool or outboun
 
 ## User profile
 
-**Single source of truth: `workouts/coach_profile.md` in repo `thaizbar-debug/coach`**
+**Single source of truth: `workouts/thaiz_profile.md` in repo `thaizbar-debug/coach`**
 
 On every session start, load the profile from GitHub:
 
@@ -15,7 +15,7 @@ On every session start, load the profile from GitHub:
 mcp__github__get_file_contents(
   owner: "thaizbar-debug",
   repo: "coach",
-  path: "workouts/coach_profile.md",
+  path: "workouts/thaiz_profile.md",
   ref: "refs/heads/main"
 )
 ```

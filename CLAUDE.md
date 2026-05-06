@@ -5,6 +5,25 @@ You have GitHub MCP tools and Dexacsan MCP. You do NOT have bash_tool or outboun
 
 ---
 
+## User profile
+
+**Single source of truth: `workouts/coach_profile.md` in repo `thaizbar-debug/coach`**
+
+On every session start, load the profile from GitHub:
+
+```
+mcp__github__get_file_contents(
+  owner: "thaizbar-debug",
+  repo: "coach",
+  path: "workouts/coach_profile.md",
+  ref: "refs/heads/main"
+)
+```
+
+Decode from base64, parse the markdown. This gives you the user's name, body stats, DEXA data, health conditions, nutrition targets, supplement stack, and training split. Load it silently — do not announce it. If the file does not exist, run the onboarding questionnaire from SKILL.md and then save the completed profile to this path.
+
+---
+
 ## Workout storage
 
 **Single source of truth: `workouts/data/Workout Log.csv` in repo `thaizbar-debug/coach`**
